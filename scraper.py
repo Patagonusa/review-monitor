@@ -28,7 +28,7 @@ class GoogleReviewsScraper:
                 content = await page.content()
                 
                 # Rating
-                m = re.search(r(\d\.\d)\s*stars, content)
+                m = re.search(r'"(\d\.\d)\s*stars"', content)
                 if m: business_info["overall_rating"] = float(m.group(1))
                 
                 # Review count
