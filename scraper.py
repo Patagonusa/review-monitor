@@ -62,25 +62,35 @@ class GoogleReviewsScraper:
         """Scrape from Google Maps place page"""
         reviews = []
 
-        # Try to get overall rating
-        try:
-            rating_elem = await page.query_selector('[class*="fontDisplayLarge"]')
-            if rating_elem:
-                rating_text = await rating_elem.inner_text()
-                business_info["overall_rating"] = float(rating_text.replace(",", "."))
-        except Exception as e:
-            print(f"Rating extraction error: {e}")
+        print(f"[SCRAPER] Processing maps page for {business_info['name']}")
 
-        # Try to get total review count
+        # Try to get overall rating - multiple selectors
         try:
-            review_count_elem = await page.query_selector('[class*="fontBodyMedium"]')
-            if review_count_elem:
-                count_text = await review_count_elem.inner_text()
-                match = re.search(r'([\d,]+)\s*review', count_text, re.IGNORECASE)
-                if match:
-                    business_info["total_reviews"] = int(match.group(1).replace(",", ""))
+            rating_selectors = ['div.fontDisplayLarge', 'span.fontDisplayLarge', 'div.F7nice span', '[class*="fontDisplayLarge"]']
+            for selector in rating_selectors:
+                rating_elem = await page.query_selector(selector)
+                if rating_elem:
+                    rating_text = await rating_elem.inner_text()
+                    rating_text = rating_text.strip().replace(",", ".")
+                    if re.match(r'^\d\.?\d?$', rating_text):
+                        business_info["overall_rating"] = float(rating_text)
+                        print(f"[SCRAPER] Found rating: {rating_text}")
+                        break
         except Exception as e:
-            print(f"Review count extraction error: {e}")
+            print(f"[SCRAPER] Rating extraction error: {e}")
+
+        # Try to get total review count from page content
+        try:
+            content = await page.content()
+            matches = re.findall(r'([\d,]+)\s*reviews?', content, re.IGNORECASE)
+            for match in matches:
+                count = int(match.replace(",", ""))
+                if count > 0 and count < 100000:
+                    business_info["total_reviews"] = count
+                    print(f"[SCRAPER] Found review count: {count}")
+                    break
+        except Exception as e:
+            print(f"[SCRAPER] Review count extraction error: {e}")
 
         # Click on Reviews tab to load all reviews
         try:
@@ -111,7 +121,13 @@ class GoogleReviewsScraper:
             pass
 
         # Extract individual reviews
-        review_elements = await page.query_selector_all('[data-review-id]')
+        review_selectors = ['[data-review-id]', 'div.jftiEf', 'div.jJc9Ad']
+        review_elements = []
+        for sel in review_selectors:
+            review_elements = await page.query_selector_all(sel)
+            if review_elements:
+                print(f"[SCRAPER] Found {len(review_elements)} reviews with selector: {sel}")
+                break
 
         for elem in review_elements[:100]:
             try:

@@ -206,7 +206,11 @@ def get_stats():
 
     all_ratings = []
 
-    for config_biz in config_businesses:
+    # Filter out GS Thompson (they have dedicated page)
+    non_gs_businesses = [b for b in config_businesses if "GS Thompson" not in b.get("name", "")]
+    stats["total_businesses"] = len(non_gs_businesses)
+    
+    for config_biz in non_gs_businesses:
         biz_id = config_biz.get("id")
         scraped_biz = scraped_businesses.get(biz_id, {})
 

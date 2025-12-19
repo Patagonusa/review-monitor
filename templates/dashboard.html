@@ -727,7 +727,10 @@
         function renderBusinesses() {
             const grid = document.getElementById('businessesGrid');
 
-            if (!stats.businesses_summary || stats.businesses_summary.length === 0) {
+            // Filter out GS Thompson - they have their own page
+            const filteredBusinesses = (stats.businesses_summary || []).filter(biz => !biz.name.includes('GS Thompson'));
+
+            if (filteredBusinesses.length === 0) {
                 grid.innerHTML = `
                     <div class="empty-state" style="grid-column: 1/-1;">
                         <h3>No businesses added yet</h3>
@@ -737,8 +740,8 @@
                 return;
             }
 
-            grid.innerHTML = stats.businesses_summary.map(biz => {
-                const isGS = biz.name.includes('GS Thompson');
+            grid.innerHTML = filteredBusinesses.map(biz => {
+                const isGS = false; // Already filtered
                 const dist = biz.rating_distribution || {};
                 const maxDist = Math.max(...Object.values(dist), 1);
 
