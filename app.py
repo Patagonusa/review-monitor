@@ -115,24 +115,33 @@ def trigger_scrape():
 @app.route('/api/stats')
 def get_stats():
     """Get aggregated statistics"""
-    data = load_reviews_data()
-    businesses = data.get("businesses", [])
+    reviews_data = load_reviews_data()
+    businesses_config = load_businesses()
+
+    # Get scraped data
+    scraped_businesses = {b.get("id"): b for b in reviews_data.get("businesses", [])}
+    config_businesses = businesses_config.get("businesses", [])
 
     stats = {
-        "total_businesses": len(businesses),
+        "total_businesses": len(config_businesses),
         "total_reviews": 0,
         "average_rating": 0,
-        "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+        "rating_distribution": {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0},
         "businesses_summary": [],
         "recent_reviews": [],
-        "needs_response": []
+        "needs_response": [],
+        "scraped_at": reviews_data.get("scraped_at")
     }
 
     all_ratings = []
 
-    for biz in businesses:
-        biz_reviews = biz.get("reviews", [])
-        biz_rating = biz.get("overall_rating")
+    # Merge config businesses with scraped data
+    for config_biz in config_businesses:
+        biz_id = config_biz.get("id")
+        scraped_biz = scraped_businesses.get(biz_id, {})
+
+        biz_reviews = scraped_biz.get("reviews", [])
+        biz_rating = scraped_biz.get("overall_rating")
 
         stats["total_reviews"] += len(biz_reviews)
 
@@ -143,32 +152,32 @@ def get_stats():
         for review in biz_reviews:
             rating = review.get("rating")
             if rating and 1 <= rating <= 5:
-                stats["rating_distribution"][rating] += 1
+                stats["rating_distribution"][str(rating)] += 1
 
-        # Business summary
+        # Business summary - always include from config
         stats["businesses_summary"].append({
-            "id": biz.get("id"),
-            "name": biz.get("name"),
+            "id": biz_id,
+            "name": config_biz.get("name"),
             "rating": biz_rating,
             "review_count": len(biz_reviews),
-            "url": biz.get("url")
+            "url": config_biz.get("google_maps_url")
         })
 
         # Collect reviews needing response
         for review in biz_reviews:
             if not review.get("owner_response") and review.get("rating", 5) <= 3:
                 stats["needs_response"].append({
-                    "business_name": biz.get("name"),
+                    "business_name": config_biz.get("name"),
                     "reviewer": review.get("reviewer_name"),
                     "rating": review.get("rating"),
                     "text": review.get("text", "")[:200],
                     "date": review.get("date")
                 })
 
-        # Recent reviews (last 10 per business)
+        # Recent reviews (last 5 per business)
         for review in biz_reviews[:5]:
             stats["recent_reviews"].append({
-                "business_name": biz.get("name"),
+                "business_name": config_biz.get("name"),
                 **review
             })
 

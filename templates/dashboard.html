@@ -637,7 +637,7 @@
             const dist = stats.rating_distribution || {};
             const max = Math.max(...Object.values(dist), 1);
 
-            [5, 4, 3, 2, 1].forEach(star => {
+            ['5', '4', '3', '2', '1'].forEach(star => {
                 const count = dist[star] || 0;
                 const height = (count / max) * 100;
                 const bar = document.querySelector(`.bar.star-${star}`);
