@@ -1,0 +1,18 @@
+{
+  "businesses": [
+    {
+      "id": 1,
+      "name": "Business 1",
+      "address": "123 Main St, City, State",
+      "google_maps_url": "",
+      "yelp_url": "",
+      "bbb_url": "",
+      "thumbtack_url": "",
+      "angies_url": ""
+    }
+  ],
+  "settings": {
+    "check_interval_hours": 2,
+    "platforms_enabled": ["google"]
+  }
+}
